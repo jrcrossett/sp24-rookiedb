@@ -173,7 +173,7 @@ public class BNLJOperator extends JoinOperator {
                     //fetch the first right page after reset
                     this.fetchNextRightPage();
                 }
-                //no more records to join
+                //no more records to join return null
                 else {
                     return null;
                 }
