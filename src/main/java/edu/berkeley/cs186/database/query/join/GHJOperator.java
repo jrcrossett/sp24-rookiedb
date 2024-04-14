@@ -67,10 +67,34 @@ public class GHJOperator extends JoinOperator {
      * @param pass the current pass (used to pick a hash function)
      */
     private void partition(Partition[] partitions, Iterable<Record> records, boolean left, int pass) {
-        // TODO(proj3_part1): implement the partitioning logic
         // You may find the implementation in SHJOperator.java to be a good
         // starting point. You can use the static method HashFunc.hashDataBox
         // to get a hash value.
+
+        //loop through record iterator records
+        for (Record record : records) {
+            //create DataBox to store columnValue
+            DataBox columnValue;
+
+            //determine if records are from left or right relation and get/store in columnValue
+            if (left) {
+                //set column value from left source
+                columnValue = record.getValue(getLeftColumnIndex());
+            } else {
+                //set column value from right source
+                columnValue = record.getValue(getRightColumnIndex());
+            }
+            //get hash value
+            int hash = HashFunc.hashDataBox(columnValue, pass);
+            //determine which partition to put hash value in
+            int partitionNum = hash % partitions.length;
+            //check if hash is negative and correct if so
+            if (partitionNum < 0){
+                partitionNum += partitions.length;
+            }
+            //add record to partition partitionNum
+            partitions[partitionNum].add(record);
+        }
         return;
     }
 
@@ -112,6 +136,19 @@ public class GHJOperator extends JoinOperator {
         // You shouldn't refer to any variable starting with "left" or "right"
         // here, use the "build" and "probe" variables we set up for you.
         // Check out how SHJOperator implements this function if you feel stuck.
+
+        //create hashtable to use
+        Map<DataBox, List<Record>> hashTable = new HashMap<>();
+
+        // Building stage
+        for (Record buildRecord: buildRecords) {
+            DataBox buildJoinValue = buildRecord.getValue(buildColumnIndex);
+            if (!hashTable.containsKey(buildJoinValue)) {
+                hashTable.put(buildJoinValue, new ArrayList<>());
+            }
+            hashTable.get(buildJoinValue).add(buildRecord);
+        }
+
     }
 
     /**
