@@ -140,13 +140,28 @@ public class GHJOperator extends JoinOperator {
         //create hashtable to use
         Map<DataBox, List<Record>> hashTable = new HashMap<>();
 
-        // Building stage
+        //building stage
         for (Record buildRecord: buildRecords) {
             DataBox buildJoinValue = buildRecord.getValue(buildColumnIndex);
             if (!hashTable.containsKey(buildJoinValue)) {
                 hashTable.put(buildJoinValue, new ArrayList<>());
             }
             hashTable.get(buildJoinValue).add(buildRecord);
+        }
+
+        //probing stage
+        for (Record probeRecord: probeRecords) {
+            DataBox probeJoinValue = probeRecord.getValue(getRightColumnIndex());
+            if (!hashTable.containsKey(probeJoinValue)) {
+                continue;
+            }
+            // We have to join the right record with each left record with
+            // a matching key
+            for (Record bRecord : hashTable.get(probeJoinValue)) {
+                Record joinedRecord = bRecord.concat(probeRecord);
+                // Accumulate joined records in this.joinedRecords
+                this.joinedRecords.add(joinedRecord);
+            }
         }
 
     }
@@ -173,6 +188,22 @@ public class GHJOperator extends JoinOperator {
             // TODO(proj3_part1): implement the rest of grace hash join
             // If you meet the conditions to run the build and probe you should
             // do so immediately. Otherwise you should make a recursive call.
+
+            //check if lefPartitions fits in available buffers
+            if(leftPartitions[i].getNumPages() <= numBuffers-2){
+                //feed left and right partitions [i] to buildAndProbe
+                buildAndProbe(leftPartitions[i], rightPartitions[i]);
+            }
+            //left does not fit, check if rightPartitions fits in available buffers
+            else if (rightPartitions[i].getNumPages() <= numBuffers-2){
+                //feed left and right partitions [i] to buildAndProbe
+                buildAndProbe(leftPartitions[i], rightPartitions[i]);
+            }
+            //neither left nor right fit in buffers, make recursive call
+            else {
+                run(leftPartitions[i], rightPartitions[i], pass+1);
+            }
+
         }
     }
 
@@ -240,6 +271,11 @@ public class GHJOperator extends JoinOperator {
 
         // TODO(proj3_part1): populate leftRecords and rightRecords such that
         // SHJ breaks when trying to join them but not GHJ
+        for (int i = 0; i < 161; i++) {
+            leftRecords.add(createRecord(i));
+            rightRecords.add(createRecord(i));
+        }
+
         return new Pair<>(leftRecords, rightRecords);
     }
 
@@ -260,6 +296,10 @@ public class GHJOperator extends JoinOperator {
         ArrayList<Record> leftRecords = new ArrayList<>();
         ArrayList<Record> rightRecords = new ArrayList<>();
         // TODO(proj3_part1): populate leftRecords and rightRecords such that GHJ breaks
+        for (int i = 0; i < 33; i++) {
+            leftRecords.add(createRecord(0));
+            rightRecords.add(createRecord(0));
+        }
 
         return new Pair<>(leftRecords, rightRecords);
     }
