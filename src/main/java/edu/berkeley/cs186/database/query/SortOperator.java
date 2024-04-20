@@ -219,9 +219,27 @@ public class SortOperator extends QueryOperator {
     public Run sort() {
         // Iterator over the records of the relation we want to sort
         Iterator<Record> sourceIterator = getSource().iterator();
-
         // TODO(proj3_part1): implement
-        return makeRun(); // TODO(proj3_part1): replace this!
+
+        //create list to keep list of runs that need to be merged
+        List<Run> mergeRunList = new ArrayList<>();
+
+        //get blocks of the relation to sort, sort into runs, and add to mergeRunList until no records remain
+        while(sourceIterator.hasNext()){
+            //create runs
+            Run getRun = sortRun(getBlockIterator(sourceIterator,getSchema(),numBuffers));
+            //add to list mergeRunList
+            mergeRunList.add(getRun);
+        }
+
+        //merge runs using mergePass until all records in 1 sorted run
+        while(mergeRunList.size() > 1){
+            //run mergePass
+            mergeRunList = mergePass(mergeRunList);
+
+        }
+        //return first/only run
+        return mergeRunList.get(0); // TODO(proj3_part1): replace this!
     }
 
     /**
