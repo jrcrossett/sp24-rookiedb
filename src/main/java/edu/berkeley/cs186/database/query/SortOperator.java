@@ -122,7 +122,45 @@ public class SortOperator extends QueryOperator {
     public Run mergeSortedRuns(List<Run> runs) {
         assert (runs.size() <= this.numBuffers - 1);
         // TODO(proj3_part1): implement
-        return null;
+
+        //create a list to hold record iterators from the list of runs
+        ArrayList <BacktrackingIterator<Record>> runList = new ArrayList<>();
+        //create new run to hold result of merging provided runs
+        Run mergedRuns = new Run(this.transaction,this.getSchema());
+        //create priority queue to hold record pairs and their indices compared with RecordPairComparator
+        PriorityQueue<Pair<Record, Integer>> recordQueue = new PriorityQueue<>(new RecordPairComparator());
+
+        //add all the run iterators provided to runList
+        for (Run run : runs) {
+            runList.add(run.iterator());
+        }
+
+        //add first pair from each record iterator to priority queue
+        for (int i = 0; i < runList.size(); i++) {
+            if (runList.get(i).hasNext()) {
+                Pair<Record,Integer> firstPair = new Pair<>(runList.get(i).next(), i);
+                recordQueue.add(firstPair);
+            }
+        }
+
+        //add the highest priority record to runList until recordQueue is empty
+        while (!recordQueue.isEmpty()){
+            //extract highest priority pair from queue
+            Pair <Record, Integer> highestPriority = recordQueue.poll();
+            //extract record from highest priority pair
+            Record priorityRecord = highestPriority.getFirst();
+            //add priorityRecord to mergedRuns
+            mergedRuns.add(priorityRecord);
+            //extract index from highest priority pair
+            int pairIndex = highestPriority.getSecond();
+            //check if there is another record in that runs iterator and add to queue if so
+            if(runList.get(pairIndex).hasNext()){
+                Pair<Record,Integer> addPair = new Pair<>(runList.get(pairIndex).next(), pairIndex);
+                recordQueue.add(addPair);
+            }
+        }
+
+        return mergedRuns;
     }
 
     /**
@@ -147,7 +185,27 @@ public class SortOperator extends QueryOperator {
      */
     public List<Run> mergePass(List<Run> runs) {
         // TODO(proj3_part1): implement
-        return Collections.emptyList();
+        //create a list of runs
+        ArrayList<Run> runsList = new ArrayList<>();
+        //create variable for number of available buffs
+        int availableBuffers = numBuffers - 1;
+
+        //merge groups of runs that are of size availableBuffers or smaller and add to runsList
+        for(int i = 0; i < runs.size(); i += availableBuffers){
+            //create list to hold the subgroup of runs
+            ArrayList<Run> subList = new ArrayList<>(runs.subList(i, Math.min((i + availableBuffers),
+                    (runs.size()))));
+            //sort sublist via mergeSortedRuns() and add to runsList
+            runsList.add(mergeSortedRuns(subList));
+        }
+
+        return runsList;
+        /*List<Run> mergeRun = new ArrayList<>();
+        for (int i = 0; numBuffers + i - 1 <= runs.size() + 1; i += numBuffers - 1) {
+            List<Run> mergeAdd = runs.subList(i, Math.min(runs.size(), numBuffers + i - 1));
+            mergeRun.add(mergeSortedRuns(mergeAdd));
+        }
+        return mergeRun;*/
     }
 
     /**
