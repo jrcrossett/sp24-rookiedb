@@ -577,6 +577,21 @@ public class QueryPlan {
         QueryOperator minOp = new SequentialScanOperator(this.transaction, table);
 
         // TODO(proj3_part2): implement
+        int accessCount = -8;
+        int minIOs = minOp.estimateIOCost();
+
+        for(int i : this.getEligibleIndexColumns(table)) {
+            SelectPredicate predicate = this.selectPredicates.get(i);
+            QueryOperator plan = new IndexScanOperator(this.transaction, table, predicate.column, predicate.operator,
+                    predicate.value);
+            int planIOs = plan.estimateIOCost();
+            if(minIOs > planIOs){
+                accessCount = i;
+                minOp = plan;
+                minIOs = planIOs;
+            }
+        }
+        minOp = this.addEligibleSelections(minOp, accessCount);
         return minOp;
     }
 
