@@ -140,7 +140,64 @@ public class SortMergeOperator extends JoinOperator {
          */
         private Record fetchNextRecord() {
             // TODO(proj3_part1): implement
-            return null;
+            //check if LeftRecord is null and if so, return null
+            if(this.leftRecord == null){
+                return null;
+            }
+            //see if a record has been marked, if not mark and advance left and/or right records
+            if(!marked){
+                this.marked = true;
+                //advance rightRecord until it finds record >= leftRecord
+                while(compare(this.leftRecord,this.rightRecord) > 0){
+                    this.rightRecord = this.rightIterator.next();
+                }
+                //advance leftRecord until it finds record <= rightRecord
+                while(compare(this.leftRecord,this.rightRecord) < 0){
+                    this.leftRecord = this.leftIterator.next();
+                }
+                this.rightIterator.markPrev();
+            }
+            //
+            if(compare(this.leftRecord,this.rightRecord) == 0) {
+                //join left and right record in a new record to return
+                Record returnRecord = this.leftRecord.concat(this.rightRecord);
+                //check if right iterator has next record
+                if (!this.rightIterator.hasNext()) {
+                    //check if leftIterator has next record
+                    if(this.leftIterator.hasNext()){
+                        //set leftRecord to next record
+                        this.leftRecord = this.leftIterator.next();
+                    } else {
+                        //set leftRecord to null
+                        this.leftRecord = null;
+                    }
+                    //no next right iterator so reset and move to next record
+                    this.rightIterator.reset();
+                    this.rightRecord = this.rightIterator.next();
+                //right iterator has next so set rightRecord to next
+                } else {
+                    this.rightRecord = this.rightIterator.next();
+                }
+                //return joined record
+                return returnRecord;
+            //records not equal
+            } else {
+                //unmark
+                this.marked = false;
+                //check if leftIterator has next record
+                if(this.leftIterator.hasNext()){
+                    //set leftRecord to next record
+                    this.leftRecord = this.leftIterator.next();
+                } else {
+                    //set leftRecord to null
+                    this.leftRecord = null;
+                }
+                //reset rightIterator and move to next record
+                this.rightIterator.reset();
+                this.rightRecord = this.rightIterator.next();
+                //make recursive call to try again
+                return fetchNextRecord();
+            }
         }
 
         @Override
