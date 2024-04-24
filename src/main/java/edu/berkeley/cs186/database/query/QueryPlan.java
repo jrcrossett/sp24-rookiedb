@@ -599,7 +599,7 @@ public class QueryPlan {
                 minIOs = planIOs;
             }
         }
-        //push down selection predicates excluding minIndex
+        //push down selection predicates excluding that at minIndex
         minOp = this.addEligibleSelections(minOp, minIndex);
         return minOp;
     }
@@ -791,7 +791,8 @@ public class QueryPlan {
         //create new map to hold resutls of each pass and initialize to tableCosts
         Map<Set<String>, QueryOperator> joinCosts = tableCosts;
 
-        //complete pass 2 through pass tableNames.size()
+        //complete pass 2 through pass tableNames.size() to find lowest cost joins from prev pass
+        // with each table in tableCosts
         for(int i = 2; i <= tableNames.size(); i++){
             joinCosts = minCostJoins(joinCosts,tableCosts);
 
