@@ -679,6 +679,7 @@ public class QueryPlan {
                 QueryOperator table;
                 QueryOperator join;
 
+                //case 1: set contains left table but not right. fetch rightTable operator with pass1Map
                 if(tables.contains(predicate.leftTable) && !tables.contains(predicate.rightTable)){
 
                     set.add(predicate.rightTable);
@@ -686,14 +687,18 @@ public class QueryPlan {
                     key.add(predicate.rightTable);
                     join = minCostJoinType(prevMap.get(tables), table, predicate.leftColumn, predicate.rightColumn);
 
-                } else if (!tables.contains(predicate.leftTable) && tables.contains(predicate.rightTable)) {
+                }
+                //case 2: set contains right table but not left. fetch leftTable operator with pass1Map
+                else if (!tables.contains(predicate.leftTable) && tables.contains(predicate.rightTable)) {
 
                     set.add(predicate.leftTable);
                     table = pass1Map.get(set);
                     key.add(predicate.leftTable);
                     join = minCostJoinType(prevMap.get(tables), table, predicate.rightColumn, predicate.leftColumn);
 
-                } else {
+                }
+                //case3: skip this join predicate and continue loop
+                else {
 
                     continue;
                 }
