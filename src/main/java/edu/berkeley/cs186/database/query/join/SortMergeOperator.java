@@ -149,11 +149,15 @@ public class SortMergeOperator extends JoinOperator {
                 this.marked = true;
                 //advance rightRecord until it finds record >= leftRecord
                 while(compare(this.leftRecord,this.rightRecord) > 0){
-                    this.rightRecord = this.rightIterator.next();
+                    if(this.rightIterator.hasNext()) {
+                        this.rightRecord = this.rightIterator.next();
+                    }
                 }
                 //advance leftRecord until it finds record <= rightRecord
                 while(compare(this.leftRecord,this.rightRecord) < 0){
-                    this.leftRecord = this.leftIterator.next();
+                    if(this.leftIterator.hasNext()) {
+                        this.leftRecord = this.leftIterator.next();
+                    }
                 }
                 this.rightIterator.markPrev();
             }

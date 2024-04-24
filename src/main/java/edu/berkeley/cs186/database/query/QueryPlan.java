@@ -579,7 +579,8 @@ public class QueryPlan {
         // TODO(proj3_part2): implement
         //get and store min IO cost without indexes
         int minIOs = minOp.estimateIOCost();
-        //variable for index of the select predicate with the minIO cost
+        //variable for index of the select predicate with the minIO cost.
+        // Initialize with number that can be a column index
         int minIndex = -1;
 
         //loop through all eligible index columns and calculate minIO cost
@@ -672,29 +673,36 @@ public class QueryPlan {
 
         //loop through tables in prevMap
         for (Set<String> tables : prevMap.keySet()){
+            //loop through all join predicates in this.joinPredicates
             for (JoinPredicate predicate : this.joinPredicates){
 
-                Set<String> key = new HashSet<>(tables);
-                Set<String> set = new HashSet<>();
-                QueryOperator table;
-                QueryOperator join;
+                //create set containing current tables, set for missing table, and QueryOperators for the table to
+                // join and the result of the join
+                Set<String> tablesSet = new HashSet<>(tables);
+                Set<String> joinTable = new HashSet<>();
+                QueryOperator tableToJoin;
+                QueryOperator joinResult;
 
                 //case 1: set contains left table but not right. fetch rightTable operator with pass1Map
                 if(tables.contains(predicate.leftTable) && !tables.contains(predicate.rightTable)){
 
-                    set.add(predicate.rightTable);
-                    table = pass1Map.get(set);
-                    key.add(predicate.rightTable);
-                    join = minCostJoinType(prevMap.get(tables), table, predicate.leftColumn, predicate.rightColumn);
+                    //fetch rightTable operator, add it to tablesSet, and find min join cost
+                    joinTable.add(predicate.rightTable);
+                    tableToJoin = pass1Map.get(joinTable);
+                    tablesSet.add(predicate.rightTable);
+                    joinResult = minCostJoinType(prevMap.get(tables), tableToJoin, predicate.leftColumn,
+                            predicate.rightColumn);
 
                 }
                 //case 2: set contains right table but not left. fetch leftTable operator with pass1Map
                 else if (!tables.contains(predicate.leftTable) && tables.contains(predicate.rightTable)) {
 
-                    set.add(predicate.leftTable);
-                    table = pass1Map.get(set);
-                    key.add(predicate.leftTable);
-                    join = minCostJoinType(prevMap.get(tables), table, predicate.rightColumn, predicate.leftColumn);
+                    //fetch leftTable operator, add it to tablesSet, and find min join cost
+                    joinTable.add(predicate.leftTable);
+                    tableToJoin = pass1Map.get(joinTable);
+                    tablesSet.add(predicate.leftTable);
+                    joinResult = minCostJoinType(prevMap.get(tables), tableToJoin, predicate.rightColumn,
+                            predicate.leftColumn);
 
                 }
                 //case3: skip this join predicate and continue loop
@@ -703,12 +711,16 @@ public class QueryPlan {
                     continue;
                 }
 
-                if(result.containsKey(key)){
-                    if (result.get(key).estimateIOCost() > join.estimateIOCost()){
-                        result.put(key, join);
+                //see if result has given tablesSet already
+                if(result.containsKey(tablesSet)){
+                    //if so, see if the new join result is less than existing query operator for tablesSet
+                    if (result.get(tablesSet).estimateIOCost() > joinResult.estimateIOCost()){
+                        //if so, update results with new lower cost for tablesSet, if not, do nothing
+                        result.put(tablesSet, joinResult);
                     }
                 } else {
-                    result.put(key, join);
+                    //add in tablesSet and result since they are not in results list yet
+                    result.put(tablesSet, joinResult);
                 }
 
             }
