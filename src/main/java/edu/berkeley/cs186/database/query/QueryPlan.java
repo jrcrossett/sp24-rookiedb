@@ -669,6 +669,8 @@ public class QueryPlan {
         //      calculate the cheapest join with the new table (the one you
         //      fetched an operator for from pass1Map) and the previously joined
         //      tables. Then, update the result map if needed.
+
+        //loop through tables in prevMap
         for (Set<String> tables : prevMap.keySet()){
             for (JoinPredicate predicate : this.joinPredicates){
 
@@ -757,7 +759,35 @@ public class QueryPlan {
         // Set the final operator to the lowest cost operator from the last
         // pass, add group by, project, sort and limit operators, and return an
         // iterator over the final operator.
-        return this.executeNaive(); // TODO(proj3_part2): Replace this!
+
+        //create Map to store lowest cost for each table
+        Map<Set<String>, QueryOperator> tableCosts = new HashMap<>();
+        //loop through all the tables in tableNames and add lowest cost to map
+        for (String table : tableNames){
+            //create Set to hold table name
+            Set<String> currentTable = new HashSet<>();
+            currentTable.add(table);
+            //get and put the lowest cost for each table in tableCosts
+            tableCosts.put(currentTable, minCostSingleAccess(table));
+        }
+
+        //create new map to hold resutls of each pass and initialize to tableCosts
+        Map<Set<String>, QueryOperator> joinCosts = tableCosts;
+
+        //complete pass 2 through pass tableNames.size()
+        for(int i = 2; i <= tableNames.size(); i++){
+            joinCosts = minCostJoins(joinCosts,tableCosts);
+
+        }
+
+        //set finalOperator to lowest cost operator of final pass and add groupby, project, limit
+        this.finalOperator = minCostOperator(joinCosts);
+        this.addGroupBy();
+        this.addProject();
+        this.addLimit();
+
+        //return iterator over finalOperator
+        return this.finalOperator.iterator();
     }
 
     // EXECUTE NAIVE ///////////////////////////////////////////////////////////
